@@ -10,7 +10,7 @@ Check out the Weave Workspace [here](https://wandb.ai/wandb-smle/weave-cookboook
     - Set Entity, Project (device for now only CPU)
     - Setup = True the first time to run to extract data and generate dataset
     - The chat model, embedding model, judge model, prompts, params as you want to!
-4. Run `main.py`
+4. Run `main.py` with different configs or run `streamlit run chatbot.py` to track interactions with an already deployed model. 
 
 ### Code Structure
 - `main.py` - contains the main application flow - serves as an example for bringing everything together
