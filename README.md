@@ -1,5 +1,5 @@
-# RAG Demo with Weave
-This repo aims at demonstraing the continuous development and improvement of a RAG model with Weave. This is a living repo where we'll compare different LLM-based knowledge workers with each other: from a basic LLM, to a basic RAG, over agents with retrieval and function calling, to multi-agent approaaches. 
+# Agent Dev Collection
+This repo aims at demonstraing the continuous development and improvement of agents. This is a living repo where we'll compare different agents with each other: from a basic LLM, to a basic RAG, over agents with retrieval and function calling, to multi-agent approaaches. 
 
 Check out the Weave Workspace [here](https://wandb.ai/wandb-smle/weave-cookboook-demo/weave/compare-evaluations?evaluationCallIds=%5B%2243c0f1c3-203e-4983-823c-c1134439104a%22%2C%22863675b8-b7a5-4aab-913e-75a34d085f31%22%5D)!
 
