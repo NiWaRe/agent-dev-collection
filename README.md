@@ -1,5 +1,5 @@
 # Agent Dev Collection
-This is a living repo gathering the most important evals, monitoring, test cases for the continuous development and improvement of agents. We'll add monitoring tooling and a standardized capability test cases to a basic agent application.
+This is a living repo gathering the most important evals, monitoring, test cases for the continuous development and improvement of agents. We'll add monitoring and evaluation tooling and standardized capability test cases (e.g. functional calling, agent communication) to a basic agent application.
 
 
 ## Knowledge Worker Project
