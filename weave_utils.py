@@ -6,8 +6,8 @@ from pydantic import PrivateAttr
 
 import weave
 import asyncio
+from weave import Table
 from weave.trace import serializer 
-from weave.table import Table
 from weave.trace.custom_objs import MemTraceFilesArtifact
 
 import faiss
