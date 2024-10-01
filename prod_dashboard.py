@@ -6,6 +6,7 @@ import weave
 from datetime import datetime, timedelta
 import itertools
 import json
+import os
 
 AVAILABLE_PROJECTS = [
     # entity name, project name
@@ -65,8 +66,6 @@ def fetch_calls(client, project_id, start_time, trace_roots_only, limit):
 def process_calls(calls):
     records = []
     for call in calls:
-        # TODO: it would be great if we had the same interface for tokens, latency as for costs and feedback
-        model = next((model for model, _, _ in MODEL_NAMES if model in json.dumps(call.inputs) or model in json.dumps(call.output)), "N/A")
         costs = call.summary.get("weave", {}).get("costs", {})
         total_tokens = sum(cost.get("prompt_tokens", 0) + cost.get("completion_tokens", 0) for cost in costs.values())
         feedback = call.summary.get("weave", {}).get("feedback", [])
@@ -77,14 +76,14 @@ def process_calls(calls):
             "Call ID": call.id,
             "Trace ID": call.trace_id,
             "Display Name": call.display_name,
-            "Model": model,
             "Tokens": total_tokens,
             "Latency (ms)": call.summary.get("weave", {}).get("latency_ms", 0),
             "Thumbs Up": thumbs_up,
             "Thumbs Down": thumbs_down,
             "Started At": pd.to_datetime(getattr(call, 'started_at', datetime.min)),
             "Inputs": json.dumps(call.inputs, default=str),
-            "Outputs": json.dumps(call.output, default=str)
+            "Outputs": json.dumps(call.output, default=str),
+            "Call Name": call.op_name.split(":")[-2].split("/")[-1] #if call.display_name else call.display_name
         })
     return pd.DataFrame(records)
 
@@ -95,26 +94,41 @@ def plot_feedback_pie_chart(thumbs_up, thumbs_down):
     return fig
 
 def plot_token_usage(df):
-    fig = px.area(df, x="Started At", y="Tokens", color="Model", title="Token Usage Over Time")
+    fig = px.area(df, x="Started At", y="Tokens", color="Call Name", title="Token Usage Over Time")
     fig.update_layout(xaxis_title="Time", yaxis_title="Total Tokens", showlegend=True)
     return fig
 
 def plot_latency_over_time(df):
-    fig = px.area(df, x="Time", y="Latency (ms)", color="Model", title="Latency Over Time")
+    fig = px.bar(df, x="Started At", y="Latency (ms)", color="Call Name", title="Latency Over Time")
     fig.update_layout(xaxis_title="Time", yaxis_title="Latency (ms)", showlegend=True)
     return fig
 
 def plot_model_cost_distribution(df):
     fig = px.bar(df, x="llm_id", y="total_cost", color="llm_id", title="Cost Distribution by Model")
-    fig.update_layout(xaxis_title="Model", yaxis_title="Cost (USD)")
+    fig.update_layout(xaxis_title="Call Name", yaxis_title="Cost (USD)")
     return fig
 
 def render_dashboard():
     # Configs panel
     st.markdown("<div class='header'>Weave LLM Monitoring Dashboard</div>", unsafe_allow_html=True)
 
+    # Add custom Weave project URL input with default example
+    default_project_url = f"{AVAILABLE_PROJECTS[0]}"
+    custom_project_url = st.sidebar.text_input("Custom Weave Project URL", value=default_project_url)
+    
+    # Add WandB API key input
+    wandb_key = st.sidebar.text_input("WandB API Key", type="password")
+    if wandb_key:
+        os.environ["WANDB_API_KEY"] = wandb_key
+
     trace_roots_only = st.sidebar.toggle("Trace Roots Only", value=True)
-    selected_project = st.sidebar.selectbox("Select Weave Project", AVAILABLE_PROJECTS, index=0)
+    
+    # Use custom project URL if provided, otherwise use the dropdown
+    if custom_project_url != default_project_url:
+        selected_project = custom_project_url
+    else:
+        selected_project = st.sidebar.selectbox("Select Weave Project", AVAILABLE_PROJECTS, index=0)
+    
     client = init_weave_client(selected_project)
     if client is None:
         st.stop()
@@ -128,7 +142,7 @@ def render_dashboard():
     st.write(f"Trace Roots Only: **{'Yes' if trace_roots_only else 'No'}**")
     st.write(f"Calls Limit: **{calls_limit}**")
 
-    # Fetch and process data
+    # Fetch and process calls from Weave
     with st.spinner("Fetching data from Weave..."):
         calls = fetch_calls(client, selected_project, start_time, trace_roots_only, calls_limit)
         if not calls:
@@ -137,7 +151,7 @@ def render_dashboard():
         df_calls = process_calls(calls)
         st.success(f"Successfully fetched and processed {len(df_calls)} calls.")
 
-    # Use cost API to get costs
+    # Use project-level cost API to get costs from Weave
     costs = client.query_costs()
     df_costs = pd.DataFrame([cost.dict() for cost in costs])
     df_costs['total_cost'] = df_costs['prompt_token_cost'] + df_costs['completion_token_cost']
@@ -168,10 +182,8 @@ def render_dashboard():
     with tab1:
         st.plotly_chart(plot_token_usage(df_calls), use_container_width=True)
     with tab2:
-        df_latency = df_calls.groupby(['Started At', 'Model'])['Latency (ms)'].mean().reset_index()
-        df_latency['Time'] = df_latency['Started At']
-        if not df_latency.empty:
-            st.plotly_chart(plot_latency_over_time(df_latency), use_container_width=True)
+        if not df_calls.empty:
+            st.plotly_chart(plot_latency_over_time(df_calls), use_container_width=True)
         else:
             st.warning("No latency data available for the selected time range.")
 
