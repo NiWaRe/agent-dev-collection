@@ -1,5 +1,4 @@
 import weave
-from weave import WeaveList
 from weave.flow.scorer import Scorer
 from typing import Any, Optional, List
 
@@ -42,7 +41,7 @@ def eval_retrieval(model_output: Optional[dict], main_source: str) -> dict:
     #return {"first retrieval correct": nr1_retrieval == main_source}
 
 ## correctness scorer ##
-class CorrectnessLLMJudge(Scorer):
+class CorrectnessLLMJudge(Scorer, weave.Object):
     prompt: PromptTemplate
     models: List[ChatModel]
 
@@ -75,7 +74,7 @@ class CorrectnessLLMJudge(Scorer):
         return {"correct": correct_bools, "first_retrieval": retrieval_nr1_bool}
     
     @weave.op()
-    def summarize(self, score_rows: WeaveList) -> Optional[dict]:
+    def summarize(self, score_rows) -> Optional[dict]:
         """Aggregate all the scores that are calculated for each row by the scoring function.
            Args:
             - score_rows: a WeaveList object, nested dict of metrics and scores
@@ -136,7 +135,7 @@ class CorrectnessLLMJudge(Scorer):
 # TODO: for stuff aggregation - same code as for the RAGModel -> create stuff aggregation as class function to be called here
 
 ## hallucination scorer
-class HallucinationLLMJudge(Scorer):
+class HallucinationLLMJudge(Scorer, weave.Object):
     prompt: PromptTemplate
     models: List[ChatModel]
 
@@ -173,7 +172,7 @@ class HallucinationLLMJudge(Scorer):
         return {"no_hallucination": hallucination_bools}
     
     @weave.op()
-    def summarize(self, score_rows: WeaveList) -> Optional[dict]:
+    def summarize(self, score_rows) -> Optional[dict]:
         """Aggregate all the scores that are calculated for each row by the scoring function.
            Args:
             - score_rows: a WeaveList object, nested dict of metrics and scores
